@@ -1,3 +1,10 @@
+"""Antibody encoder blocks with CDR-aware self-attention and token pooling.
+
+This module implements the antibody-side transformer stack used by AbAgKer.
+The key idea is to reserve a subset of attention heads for CDR-constrained key
+selection, then pool tokens with attention-derived importance scores.
+"""
+
 import math
 
 import torch

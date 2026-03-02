@@ -1,9 +1,3 @@
-"""Symmetric antibody-antigen cross-attention blocks.
-
-This module exchanges contextual information between antibody and antigen token
-streams using bidirectional cross-attention followed by feed-forward refinement.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -123,8 +123,7 @@ def quadratic_crop(x, bbox, alpha=1.0):
 
 
 def custom_collate(batch):
-    r"""source: pytorch 1.9.0, only one modification to original code """
-
+    
     elem = batch[0]
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):

@@ -1,9 +1,3 @@
-"""AntiBERTy embedding wrapper used by AbAgKer.
-
-This module loads pretrained AntiBERTy checkpoints and exposes a compact API
-for sequence tokenization and hidden-state extraction.
-"""
-
 import os
 
 import torch

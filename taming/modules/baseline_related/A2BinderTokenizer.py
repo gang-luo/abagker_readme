@@ -17,11 +17,9 @@ class BaseTokenizer(object):
 
         self.logger = logger
         print(f'Using {tokenizer_name} tokenizer.')
-        # self.logger.info(f'Using {tokenizer_name} tokenizer.')
         self.vocab_dir = vocab_dir
         self.token_length_list = token_length_list
         print(f"Using token with length {self.token_length_list}")
-        # self.logger.info(f"Using token with length {self.token_length_list}")
         self.add_hyphen = add_hyphen
 
         self.vocab_df, self.vocab_freq_dict = self._load_vocab()
@@ -30,7 +28,7 @@ class BaseTokenizer(object):
     def _load_vocab(self):
         df = pd.read_csv(self.vocab_dir, na_filter=False) # Since there are 'NA' token
         print('{} tokens in the vocab'.format(len(df)))
-        # self.logger.info('{} tokens in the vocab'.format(len(df)))
+        
         vocab_dict = {row['token']: row['freq_z_normalized'] for _, row in df.iterrows()}
         return df, vocab_dict
 
@@ -58,7 +56,7 @@ class BaseTokenizer(object):
     def get_bert_tokenizer(self, max_len=64, tokenizer_dir=None):
         if tokenizer_dir is not None:
             print('Loading pre-trained tokenizer...')
-            # self.logger.info('Loading pre-trained tokenizer...')
+            
             tok = BertTokenizer.from_pretrained(
                 tokenizer_dir,
                 do_lower_case=False,
@@ -190,7 +188,6 @@ class CommonTokenizer(object):
 
         self.logger = logger
         print(f'Using {tokenizer_name} tokenizer.')
-        # self.logger.info(f'Using {tokenizer_name} tokenizer.')
 
         self.token_with_special_list, self.token2index_dict = self._get_vocab_dict(add_hyphen)
     
@@ -200,7 +197,6 @@ class CommonTokenizer(object):
 
         if add_hyphen:
             print('Add hyphen - in the tokenizer')
-            # self.logger.info('Add hyphen - in the tokenizer')
             token_list = ['-'] + amino_acids_list + special_tokesn
         else:
             token_list = amino_acids_list + special_tokesn
@@ -211,7 +207,6 @@ class CommonTokenizer(object):
     def get_bert_tokenizer(self, max_len=64, tokenizer_dir=None):
         if tokenizer_dir is not None:
             print('Loading pre-trained tokenizer...')
-            # self.logger.info('Loading pre-trained tokenizer...')
             tok = BertTokenizer.from_pretrained(
                 tokenizer_dir,
                 do_lower_case=False,

@@ -1,30 +1,30 @@
-# AbAgKer: Antibody–Antigen Affinity Prediction with Structured Cross-Representation Learning
+# AbAgKer: A Unified Semi-Supervised Framework for Antigen-Antibody Binding Affinity and Kinetics Prediction
 
 ## Abstract
-AbAgKer is a deep learning framework for antibody–antigen affinity prediction that integrates pretrained protein language representations with task-specific interaction modeling. The pipeline encodes antibody heavy/light chains and antigen sequences, injects structural priors such as CDR-sensitive masking and sequence-derived side features, and performs bidirectional cross-attention to capture inter-molecular dependencies. The training objective is formulated as supervised regression over binding-related endpoints (e.g., affinity/Kd), with optional auxiliary balancing losses for mixture-style routing modules. The codebase is implemented in PyTorch Lightning and supports deterministic training, multi-configuration experiments, and fold-based data splits. Beyond raw prediction, the architecture is designed for analysis-oriented workflows: attention maps, pooled token representations, and modular encoder blocks can be inspected to study where interaction signals emerge. This repository targets reproducible antibody engineering research where transparent data flow, explicit tensor semantics, and configurable training protocols are required for publication-grade experimentation.
+To the best of our knowledge, we are the first to achieve full K-value prediction for antigen-antibody interactions (covering Kd, koff and kon), providing a comprehensive tool for antibody screening and analysis.
 
 ## Method Overview
 The method follows four stages:
 1. **Sequence encoding**: heavy chain, light chain, and antigen sequences are tokenized and converted into contextual embeddings using pretrained encoders.
-2. **Antibody modeling**: antibody tokens are refined by CDR-aware self-attention, where part of the attention heads can focus on CDR positions.
+2. **Antibody modeling**: antibody tokens are refined by Cattention, where part of the attention heads only focus on CDR positions.
 3. **Antigen compression**: long antigen token sequences are pooled into fixed-length representations via learned token weighting (convolutional and SSF-guided).
-4. **Cross-interaction fusion**: antibody and antigen streams exchange information with symmetric cross-attention before regression heads produce affinity-related outputs.
+4. **Cross-interaction fusion**: antibody and antigen streams exchange information with symmetric cross-attention before regression heads produce outputs.
 
 ## Architecture Description
 - **Training entrypoint**: `main_wandb.py` provides config-driven model/data instantiation, deterministic setup, logger/callback registration, and Trainer execution.
 - **Lightning wrapper**: `taming/models/AbAgKer_newLLM.py` defines `AbAgKerTrainer`, including `training_step`, `validation_step`, metric tracking, optimizer/scheduler setup, and feature assembly.
-- **Antibody encoder**: `taming/modules/autoencoder/AbModule.py` contains CDR-aware attention layers and token poolers.
+- **Antibody encoder**: `taming/modules/autoencoder/AbModule.py` contains Cattention module and token poolers.
 - **Antigen poolers**: `taming/modules/autoencoder/AgModule.py` provides multiple antigen sequence reduction variants.
 - **Cross modules**: `taming/modules/autoencoder/AbAgCross.py` implements bidirectional co-attention blocks.
 - **Losses/metrics**: `taming/modules/losses/loss_Ab.py` and `taming/modules/metrics/metrics.py` define optimization targets and evaluation criteria.
 
 ## Data Format Explanation
 Training/validation data are JSON lists where each sample includes:
-- `pdb`: complex identifier.
+- `pdb`: complex name.
 - `H`, `L`: antibody heavy/light chain sequences.
 - `X`: antigen sequence.
 - `AbAgA`: supervised affinity target (used as primary regression signal).
-- `AbAgI`, `AbAgAoff`: additional kinetic/auxiliary fields used by specific settings.
+- `AbAgI`, `AbAgAoff`: additional interaction/kinetic fields used by specific settings.
 
 The dataloader utilities are defined in `taming/data/PM_Data.py` and `taming/data/utils.py`, with custom collation in `custom_collate`.
 
@@ -55,8 +55,6 @@ Configuration is OmegaConf/YAML-based and typically includes:
 - `opt_config`: optimizer, gradient clipping, warmup/cosine scheduling.
 - `loss_config`: objective weights and optional auxiliary-loss controls.
 
-Command-line arguments can override YAML values via dotlist syntax.
-
 ## File Structure Overview
 ```text
 .
@@ -81,7 +79,7 @@ Command-line arguments can override YAML values via dotlist syntax.
 - For fold-based evaluation, do not mix train/test JSON splits across folds.
 - Report metrics with the same monitor key used for checkpoint selection.
 
-## Citation
+<!-- ## Citation
 If you use this repository, please cite the corresponding paper (replace placeholder metadata):
 
 ```bibtex
@@ -92,7 +90,7 @@ If you use this repository, please cite the corresponding paper (replace placeho
   year      = {2026},
   publisher = {Publisher}
 }
-```
+``` -->
 
 ## License
 License information is not yet finalized. Add the appropriate open-source license text (e.g., MIT, Apache-2.0, or custom academic license) before public release.

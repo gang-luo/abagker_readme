@@ -1,18 +1,10 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from typing import Dict,Tuple
 import torchmetrics
 import numpy as np
 from sklearn import metrics
 from math import sqrt
 from scipy import stats
-from torch import Tensor
 from torchmetrics import Metric
-from torchmetrics.classification import (
-    BinaryMatthewsCorrCoef, BinaryAccuracy, BinaryPrecision, 
-    BinaryRecall, BinaryF1Score, BinaryAUROC, BinaryAveragePrecision
-)
 
 class NPMetric(torchmetrics.Metric):
     full_state_update = False
@@ -196,100 +188,3 @@ class RM2(Metric):
         y_true = y_true_t.cpu().numpy()
         y_pred = y_pred_t.cpu().numpy()
         return torch.tensor(get_rm2(y_true, y_pred), dtype=torch.float32)
-
-
-class PktMultiClassEvaluator(Metric):
-    """
-    bindingsites Evaluator
-    - update: preds_logits [B, T, 2],targets [B, T], the calue is  {0,1,2} (2 is ignore)
-    - compute return  dict[metric_name -> Tensor]
-    """
-
-    full_state_update = True
-    higher_is_better = True
-
-    def __init__(self, prefix: str = "val/", **kwargs):
-        super().__init__(**kwargs)
-        self.prefix = prefix
-        self.add_state("logits", default=[], dist_reduce_fx="cat")
-        self.add_state("targets", default=[], dist_reduce_fx="cat")
-
-    def update(self, preds_logits: torch.Tensor, targets: torch.Tensor):
-        # preds_logits: [B, T, 2] -> [B*T, 2]
-        # targets: [B, T] -> [B*T]
-        logits_flat = preds_logits.detach().float().reshape(-1, 2)  # [B*T, 2]
-        targets_flat = targets.detach().long().reshape(-1)          # [B*T]
-        
-        # filter ignore_index (the value = 2)
-        valid_mask = targets_flat != 2
-        if valid_mask.any():
-            self.logits.append(logits_flat[valid_mask])
-            self.targets.append(targets_flat[valid_mask])
-
-    def compute(self):
-        if isinstance(self.logits, list):
-            logits_t = torch.cat([t for t in self.logits], dim=0)  # [N_valid, 2]
-        else:
-            logits_t = self.logits
-        if isinstance(self.targets, list):
-            targets_t = torch.cat([t for t in self.targets], dim=0)  # [N_valid]
-        else:
-            targets_t = self.targets
-
-        if len(targets_t) == 0:
-            return self._get_default_metrics()
-
-        logits_cpu = logits_t.detach().to("cpu")  # [N_valid, 2]
-        targets_cpu = targets_t.detach().to("cpu")  # [N_valid]
-
-        # softmax for get positive propotis
-        probs_all = torch.softmax(logits_cpu, dim=-1)  # [N_valid, 2]
-        probs_pos = probs_all[:, 1]  # [N_valid] 
-
-        # max MCC for thresholds
-        best_mcc = -2.0
-        best_thresh = 0.5
-        thresholds = torch.arange(0.01, 1.0, 0.01)
-        mcc_metric = BinaryMatthewsCorrCoef().to("cpu")
-
-        for th in thresholds:
-            pred = (probs_pos >= th).long()
-            mcc = mcc_metric(pred, targets_cpu).item()
-            if mcc > best_mcc:
-                best_mcc = mcc
-                best_thresh = float(th.item())
-
-        best_preds = (probs_pos >= best_thresh).long()
-
-        acc = BinaryAccuracy().to("cpu")(best_preds, targets_cpu)
-        prec = BinaryPrecision().to("cpu")(best_preds, targets_cpu)
-        rec = BinaryRecall().to("cpu")(best_preds, targets_cpu)
-        f1 = BinaryF1Score().to("cpu")(best_preds, targets_cpu)
-        auroc = BinaryAUROC().to("cpu")(probs_pos, targets_cpu)
-        auprc = BinaryAveragePrecision().to("cpu")(probs_pos, targets_cpu)
-
-        return {
-            f"{self.prefix}best_threshold": torch.tensor(best_thresh, dtype=torch.float32),
-            f"{self.prefix}pkt_mcc": torch.tensor(best_mcc, dtype=torch.float32),
-            f"{self.prefix}pkt_acc": acc.detach().to("cpu"),
-            f"{self.prefix}pkt_precision": prec.detach().to("cpu"),
-            f"{self.prefix}pkt_recall": rec.detach().to("cpu"),
-            f"{self.prefix}pkt_f1": f1.detach().to("cpu"),
-            f"{self.prefix}pkt_auroc": auroc.detach().to("cpu"),
-            f"{self.prefix}pkt_auprc": auprc.detach().to("cpu"),
-        }
-
-    def _get_default_metrics(self):
-        return {
-            f"{self.prefix}best_threshold": torch.tensor(0.5, dtype=torch.float32),
-            f"{self.prefix}pkt_mcc": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_acc": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_precision": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_recall": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_f1": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_auroc": torch.tensor(0.0, dtype=torch.float32),
-            f"{self.prefix}pkt_auprc": torch.tensor(0.0, dtype=torch.float32),
-        }
-
-    def reset(self):
-        super().reset()

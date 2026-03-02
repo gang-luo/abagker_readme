@@ -1,9 +1,3 @@
-"""Loss definitions for antibody-antigen affinity prediction.
-
-This file keeps the original optimization objective and logging protocol used
-by the training loop.
-"""
-
 import torch
 import torch.nn as nn
 

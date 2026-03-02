@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-=======
-"""Antigen token pooling modules used by AbAgKer.
-
-The implementation provides attention-like weighting from sequence embeddings and
-auxiliary SSF features, then reduces long antigen token sequences to fixed-size
-representations for antibody-antigen interaction modeling.
-"""
-
->>>>>>> codex/complete-repository-refactor-with-comments-and-readme-s2d5co
 from typing import Optional
 
 import torch
